@@ -46,6 +46,7 @@ namespace Tamir.SharpSsh
 		private Regex m_expectPattern;
 		private bool m_removeTerminalChars = false;
 		private bool m_redirectToConsole = false;
+		private System.Collections.Generic.Dictionary<int, string> m_localMappedPorts = new System.Collections.Generic.Dictionary<int, string>();
 		private static string escapeCharsPattern = "\\[[0-9;?]*[^0-9;]";
 
 		public SshShell(string host, string user, string password)
@@ -224,20 +225,62 @@ namespace Tamir.SharpSsh
 			byte[] buff = new byte[1024];
 			Match match;
 
-			do 
+			do
 			{
 				readCount = IO.Read(buff, 0, buff.Length);
-				if(readCount == -1) break;
+				if (readCount == -1) break;
 				string tmp = System.Text.Encoding.Default.GetString(buff, 0, readCount);
-				resp.Append( tmp, 0, readCount);
+				resp.Append(tmp, 0, readCount);
 				string s = resp.ToString();
-				match = pattern.Match( s );
-			}while(!match.Success);
+				match = pattern.Match(s);
+			} while (!match.Success);
 
 			string result = resp.ToString();
-			if(RemoveTerminalEmulationCharacters)
+			if (RemoveTerminalEmulationCharacters)
 				result = HandleTerminalChars(result);
 			return result;
+		}
+
+		/// <summary>
+		/// Closes the SSH subsystem
+		/// </summary>
+		public override void Close()
+		{
+			foreach (int localPort in m_localMappedPorts.Keys) {
+				m_session.delPortForwardingL(localPort);
+			}
+			base.Close();
+		}
+
+		/// <summary>
+		/// Sets up a Local Port Forward on the current session, using  specific local port number.
+		/// </summary>
+		public void ForwardLocalPortToRemote(int localPort, string remoteHostName, int remotePort)
+		{
+			if (m_localMappedPorts.ContainsKey(remotePort))
+				throw new InvalidOperationException("Remote port number {0} already mapped!");
+
+			if (!this.Connected)
+				throw new InvalidOperationException("Shell must be connected before port forwarding can be configured!");
+
+			m_session.setPortForwardingL(localPort, remoteHostName, remotePort);
+			m_localMappedPorts.Add(localPort, remoteHostName);
+		}
+
+		/// <summary>
+		/// Sets up a Local Port Forward on the current session, auto-selecting an appropriate local port number to listen on.
+		/// </summary>
+		/// <returns>The auto-assigned local port number.</returns>
+		public int ForwardLocalPortToRemote(string remoteHostName, int remotePort)
+		{
+			System.Net.Sockets.TcpListener autoListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+			autoListener.Start(0);
+			int autoAssignedPort = ((System.Net.IPEndPoint)autoListener.LocalEndpoint).Port;
+			autoListener.Stop();
+
+			ForwardLocalPortToRemote(autoAssignedPort, remoteHostName, remotePort);
+
+			return autoAssignedPort;
 		}
 
 		/// <summary>
