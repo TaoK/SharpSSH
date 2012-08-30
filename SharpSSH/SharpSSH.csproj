@@ -489,6 +489,7 @@
     <Compile Include="SshExe.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="SshFingerprintOnlyHostsList.cs" />
     <Compile Include="SshShell.cs">
       <SubType>Code</SubType>
     </Compile>

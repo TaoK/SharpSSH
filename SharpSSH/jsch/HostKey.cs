@@ -44,10 +44,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		internal byte[] key;
 		public HostKey(String host, byte[] key) 
 		{
-			this.host=host; this.key=key;
-			if(key[8]=='d'){ this.type=SSHDSS; }
-			else if(key[8]=='r'){ this.type=SSHRSA; }
-			else { throw new JSchException("invalid key type");}
+			this.host = host; 
+			this.key = key;
+			this.type = KeyTypeIntFromKey(key);
 		}
 		internal HostKey(String host, int type, byte[] key){
 			this.host=host; this.type=type; this.key=key;
@@ -68,6 +67,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			}
 			catch(Exception e){ Console.Error.WriteLine("getFingerPrint: "+e); }
 			return Util.getFingerPrint(hash, key);
+		}
+
+		public static int KeyTypeIntFromKey(byte[] key)
+		{
+			if (key[8] == 'd') { return SSHDSS; }
+			else if (key[8] == 'r') { return SSHRSA; }
+			else { throw new JSchException("invalid key type"); }
 		}
 	}
 

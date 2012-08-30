@@ -151,6 +151,11 @@ namespace Tamir.SharpSsh.jsch
 			return known_hosts; 
 		}
 		*/
+		public bool hasHostKeyRepository()
+		{
+			return (known_hosts == null);
+		}
+
 		public HostKeyRepository getHostKeyRepository()
 		{ 
 			if(known_hosts==null) known_hosts=new KnownHosts(this);
